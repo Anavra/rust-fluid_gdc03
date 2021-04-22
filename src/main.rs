@@ -91,19 +91,20 @@ fn main() {
 
     // Velocity grids
     let mut vx_grid_ = [0_f32; TEX_SIZE * TEX_SIZE];
-    let vx_grid = vx_grid_.to_vec();
     let mut vy_grid_ = [0_f32; TEX_SIZE * TEX_SIZE];
-    let vy_grid = vy_grid_.to_vec();
-    let mut tex_data = [0.0; TEX_SIZE * TEX_SIZE].to_vec();
+    let mut tex_data_ = [0.0; TEX_SIZE * TEX_SIZE];
     // Create texture data buffer for fluid
 
     let (mut prev_mx, mut prev_my) = (0, 0);
-
+    let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_);
     // 4 tuple, ABXY, AB for position and XY for velocity. Every frame the
     //   velocity cell this correcponds to gets set to XY.
     loop {
+    // let vx_grid = vx_grid_.to_vec();
+    // let vy_grid = vy_grid_.to_vec();
+    // let mut tex_data = tex_data_.to_vec();
         // listing the events produced by the window and waiting to be received
-        let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_);
+
         for ev in display.poll_events() {
             match ev {
                 glium::glutin::Event::Closed => return, // the window has been closed by the user
@@ -116,11 +117,11 @@ fn main() {
 
                     //println!("{}, {}", x, y);
                     let ix = pos.x + pos.y * TEX_SIZE;
-                    if ix >= tex_data.len() {
+                    if ix >= tex_data_.len() {
                         continue;
                     }
 
-                    tex_data[pos.x + pos.y * TEX_SIZE] = 1.0;
+                    tex_data_[pos.x + pos.y * TEX_SIZE] = 1.0;
 
                     let mut vel = Vel::default();
                     if prev_mx != 0 && prev_my != 0 {
@@ -138,30 +139,30 @@ fn main() {
 
         // Process fluids
         fluid::step_fluid(
-            &mut tex_data[..],
+            &mut tex_data_,
             &mut grid,
             TEX_SIZE as u32,
             0.016,
-            0.0001,
+            0.1,
             true,
         );
 
         // Re buffer texture
         use std::borrow::Cow;
         let raw_tex_2d = glium::texture::RawImage2d {
-            data: Cow::from(tex_data.clone()),
+            data: Cow::from(tex_data_[..].to_vec()),
             width: TEX_SIZE as u32,
             height: TEX_SIZE as u32,
             format: glium::texture::ClientFormat::F32,
         };
         let raw_tex_2d1 = glium::texture::RawImage2d {
-            data: Cow::from(vx_grid.clone()),
+            data: Cow::from(grid.x_vel[..].to_vec()),
             width: TEX_SIZE as u32,
             height: TEX_SIZE as u32,
             format: glium::texture::ClientFormat::F32,
         };
         let raw_tex_2d2 = glium::texture::RawImage2d {
-            data: Cow::from(vy_grid.clone()),
+            data: Cow::from(grid.y_vel[..].to_vec()),
             width: TEX_SIZE as u32,
             height: TEX_SIZE as u32,
             format: glium::texture::ClientFormat::F32,

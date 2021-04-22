@@ -10,14 +10,14 @@ pub struct Pos {
     pub x: usize,
     pub y: usize,
 }
-pub struct Grid<'a> {
-    x_vel: &'a mut [f32; TEX_SIZE * TEX_SIZE],
-    y_vel: &'a mut  [f32; TEX_SIZE * TEX_SIZE],
+pub struct Grid<'a, const  M: usize> {
+    pub x_vel: &'a mut [f32; M],
+    pub y_vel: &'a mut [f32; M],
 }
-impl<'a> Grid<'a> {
+impl<'a, const M: usize> Grid<'a, M> {
     pub fn new(
-        vx_grid: &'a mut [f32; TEX_SIZE * TEX_SIZE],
-        vy_grid: &'a mut [f32; TEX_SIZE * TEX_SIZE],
+        vx_grid: &'a mut [f32; M],
+        vy_grid: &'a mut [f32; M],
     ) -> Self {
         // Velocity grids
         Self {
@@ -37,8 +37,8 @@ impl<'a> Grid<'a> {
     pub fn arrays(
         &'a self,
     ) -> (
-        &'a [f32; TEX_SIZE * TEX_SIZE],
-        &'a [f32; TEX_SIZE * TEX_SIZE],
+        &'a [f32; M],
+        &'a [f32; M],
     ) {
         (&self.x_vel, &self.y_vel)
     }
@@ -72,7 +72,7 @@ impl Source {
 /// flow outwards.
 /// # Params
 /// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls, 0 for dens.
-fn set_borders(grid: &mut [f32], grid_w: u32, b: u8) {
+fn set_borders<const N: usize>(grid: &mut [f32; N], grid_w: u32, b: u8) {
     let grid_h = grid.len() / grid_w as usize;
     for ii in 0..grid_w {
         let ix_top = IX!(ii, 0, grid_w);
@@ -126,9 +126,9 @@ fn set_borders(grid: &mut [f32], grid_w: u32, b: u8) {
 /// Process diffusion
 /// # Params
 /// * `b` - Border type, see set_borders
-fn diffuse(
-    grid: &mut [f32],
-    prev_grid: &mut [f32],
+fn diffuse<const N: usize>(
+    grid: &mut [f32; N],
+    prev_grid: &mut [f32; N],
     grid_w: u32,
     dt: f32,
     diff: f32,
@@ -162,11 +162,11 @@ fn diffuse(
 /// Process density movement via velocity
 /// # Params
 /// * `b` - Border type, see set_borders
-fn advect(
-    grid: &mut [f32],
-    prev_grid: &[f32],
-    vx_grid: &[f32],
-    vy_grid: &[f32],
+fn advect<const N: usize>(
+    grid: &mut [f32; N],
+    prev_grid: &[f32; N],
+    vx_grid: &[f32; N],
+    vy_grid: &[f32; N],
     grid_w: u32,
     dt: f32,
     borders: bool,
@@ -216,11 +216,11 @@ fn advect(
     }
 }
 
-fn project(
-    vx_grid: &mut [f32],
-    vy_grid: &mut [f32],
-    p: &mut [f32],
-    div: &mut [f32],
+fn project<const N: usize>(
+    vx_grid: &mut [f32; N],
+    vy_grid: &mut [f32; N],
+    p: &mut [f32; N],
+    div: &mut [f32; N],
     grid_w: u32,
     borders: bool,
 ) {
@@ -272,28 +272,29 @@ fn project(
 }
 
 /// Step density
-fn step_dens(
-    dens_grid: &mut [f32],
-    vx_grid: &[f32],
-    vy_grid: &[f32],
+fn step_dens<const N: usize>(
+    dens_grid: &mut [f32; N],
+    vx_grid: &[f32; N],
+    vy_grid: &[f32; N],
     grid_w: u32,
     dt: f32,
     diff: f32,
     borders: bool,
 ) {
     // Make a copy of the dens_grid
-    let mut prev_dens_grid = dens_grid.to_vec();
-    let prev_dens_grid = &mut prev_dens_grid[..];
+    // let mut prev_dens_grid = dens_grid.to_vec();
+    // let prev_dens_grid = &mut prev_dens_grid[..];
+    let prev_dens_grid = &mut dens_grid.clone();
 
     // Swap binding in preparation for the next swap
-    //let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
+    let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
 
     // Process diffusion
     diffuse(dens_grid, prev_dens_grid, grid_w, dt, diff, borders, 0);
 
     // Swap bindings, b/c we just updates dens_grid and advect() needs to use
     // that for the previous grid
-    //let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
+    let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
 
     // Process velocity of particles
     advect(
@@ -309,26 +310,24 @@ fn step_dens(
 }
 
 /// Step velocity
-fn step_vel(
-    vx_grid: &mut [f32],
-    vy_grid: &mut [f32],
+fn step_vel<const N: usize>(
+    vx_grid: &mut [f32; N],
+    vy_grid: &mut [f32; N],
     grid_w: u32,
     dt: f32,
     diff: f32,
     borders: bool,
 ) {
     // Copy velocity grids, so we have a copy of it before processing each step
-    let mut prev_vx_grid = vx_grid.to_vec();
-    let mut prev_vy_grid = vy_grid.to_vec();
-    let prev_vx_grid = &mut prev_vx_grid[..];
-    let prev_vy_grid = &mut prev_vy_grid[..];
+      let prev_vx_grid = &mut vx_grid.clone();
+      let prev_vy_grid = &mut vy_grid.clone();
 
-    let (prev_vx_grid, vx_grid) = (vx_grid, prev_vx_grid);
-    let (prev_vy_grid, vy_grid) = (vy_grid, prev_vy_grid);
+      let (prev_vx_grid, vx_grid) = (vx_grid, prev_vx_grid);
+      let (prev_vy_grid, vy_grid) = (vy_grid, prev_vy_grid);
 
     // Diffuse just like with density but with velocity instead
-    //diffuse(vx_grid, prev_vx_grid, grid_w, dt, diff, borders, 1);
-    //diffuse(vy_grid, prev_vy_grid, grid_w, dt, diff, borders, 2);
+    diffuse(vx_grid, prev_vx_grid, grid_w, dt, diff, borders, 1);
+    diffuse(vy_grid, prev_vy_grid, grid_w, dt, diff, borders, 2);
     project(
         vx_grid,
         vy_grid,
@@ -379,20 +378,23 @@ fn step_vel(
 //   step_vel(vx_grid, vy_grid, grid_w, dt, diff, borders);
 // }
 
-pub fn step_fluid(
-    dens_grid: &mut [f32],
-    grid: &mut Grid,
+pub fn step_fluid<const N: usize>(
+    dens_grid: &mut [f32; N],
+    grid: &mut Grid<N>,
     grid_w: u32,
     dt: f32,
     diff: f32,
     borders: bool,
 ) {
-    let (mut vx_grid, mut vy_grid) = grid.arrays();
+    // let (vx_grid, vy_grid) = grid.arrays();
+    // let vx_grid_ = &mut vx_grid.to_vec()[..];
+    // let vy_grid_ = &mut vy_grid.to_vec()[..];
     // Step density, alter density grid
-    step_dens(dens_grid, vx_grid, vy_grid, grid_w, dt, diff, borders);
+
+    step_dens(dens_grid, grid.x_vel, grid.y_vel, grid_w, dt, diff, borders);
     step_vel(
-        &mut vx_grid.to_vec()[..],
-        &mut vy_grid.to_vec()[..],
+        grid.x_vel,
+        grid.y_vel,
         grid_w,
         dt,
         diff,
