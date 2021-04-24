@@ -5,6 +5,7 @@ mod fluid;
 
 use fluid::*;
 use glium::backend::glutin_backend::GlutinFacade;
+use std::time::{Duration, Instant};
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -99,53 +100,63 @@ fn main() {
     let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_);
     // 4 tuple, ABXY, AB for position and XY for velocity. Every frame the
     //   velocity cell this correcponds to gets set to XY.
+
+    // let now = Instant::now();
+    let mut last_t = Instant::now();
+    // let max_nanoseconds = u64::MAX / 1_000_000_000;
+    // let mut duration = Duration::new(max_nanoseconds, 0);
+    let mut fps_list = Vec::<u128>::new();
+    // let mut t = Duration::default();
     loop {
-    // let vx_grid = vx_grid_.to_vec();
-    // let vy_grid = vy_grid_.to_vec();
-    // let mut tex_data = tex_data_.to_vec();
+        let new_now = Instant::now();
+        let dt = new_now.duration_since(last_t);
+        let ms = dt.as_millis();
+        if ms > 0 {
+            let fps = 1000 / ms;
+            fps_list.push(fps);
+            let avg_fps: u128 =
+                (fps_list.iter().fold(0, |x, y| (x + y) as u128) / fps_list.len() as u128) as u128;
+            println!("{} (total avg: {})", fps, avg_fps);
+        }
+        last_t = new_now;
         // listing the events produced by the window and waiting to be received
 
         for ev in display.poll_events() {
             match ev {
                 glium::glutin::Event::Closed => return, // the window has been closed by the user
-                glium::glutin::Event::MouseMoved(x, y) => {
-                    let pos = Pos {
-                        x: ((x as f32 / display_w as f32) * TEX_SIZE as f32) as usize,
-                        y: (((display_h as f32 - y as f32) / display_h as f32) * TEX_SIZE as f32)
-                            as usize,
-                    };
-
-                    //println!("{}, {}", x, y);
-                    let ix = pos.x + pos.y * TEX_SIZE;
-                    if ix >= tex_data_.len() {
-                        continue;
-                    }
-
-                    tex_data_[pos.x + pos.y * TEX_SIZE] = 1.0;
-
-                    let mut vel = Vel::default();
-                    if prev_mx != 0 && prev_my != 0 {
-                        vel.x = (pos.x as f32 - prev_mx as f32) * 2000.0;
-                        vel.y = (pos.y as f32 - prev_my as f32) * 2000.0;
-                    }
-                    prev_mx = pos.x;
-                    prev_my = pos.y;
-
-                    grid.set(pos, vel);
-                }
+                // glium::glutin::Event::MouseMoved(x, y) => {
+                //     let pos = Pos {
+                //         x: ((x as f32 / display_w as f32) * TEX_SIZE as f32) as usize,
+                //         y: (((display_h as f32 - y as f32) / display_h as f32) * TEX_SIZE as f32)
+                //             as usize,
+                //     };
+                //
+                //     //println!("{}, {}", x, y);
+                //     let ix = pos.x + pos.y * TEX_SIZE;
+                //     if ix >= tex_data_.len() {
+                //         continue;
+                //     }
+                //
+                //     tex_data_[pos.x + pos.y * TEX_SIZE] = 1.0;
+                //
+                //     let mut vel = Vel::default();
+                //     if prev_mx != 0 && prev_my != 0 {
+                //         vel.x = (pos.x as f32 - prev_mx as f32) * 2000.0;
+                //         vel.y = (pos.y as f32 - prev_my as f32) * 2000.0;
+                //     }
+                //     prev_mx = pos.x;
+                //     prev_my = pos.y;
+                //
+                //     grid.set(pos, vel);
+                // }
                 _ => (),
             }
         }
 
+        grid.set(Pos { x: 100, y: 100 }, Vel { x: 10.0, y: 10.0 });
+
         // Process fluids
-        fluid::step_fluid(
-            &mut tex_data_,
-            &mut grid,
-            TEX_SIZE as u32,
-            0.016,
-            0.1,
-            true,
-        );
+        fluid::step_fluid(&mut tex_data_, &mut grid, TEX_SIZE as u32, ms as f32/1000.0, 0.1, true);
 
         // Re buffer texture
         use std::borrow::Cow;

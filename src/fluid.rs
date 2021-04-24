@@ -10,15 +10,12 @@ pub struct Pos {
     pub x: usize,
     pub y: usize,
 }
-pub struct Grid<'a, const  M: usize> {
+pub struct Grid<'a, const M: usize> {
     pub x_vel: &'a mut [f32; M],
     pub y_vel: &'a mut [f32; M],
 }
 impl<'a, const M: usize> Grid<'a, M> {
-    pub fn new(
-        vx_grid: &'a mut [f32; M],
-        vy_grid: &'a mut [f32; M],
-    ) -> Self {
+    pub fn new(vx_grid: &'a mut [f32; M], vy_grid: &'a mut [f32; M]) -> Self {
         // Velocity grids
         Self {
             x_vel: vx_grid,
@@ -34,12 +31,7 @@ impl<'a, const M: usize> Grid<'a, M> {
         self.x_vel[pos.x + pos.y * TEX_SIZE] = vel.x;
         self.y_vel[pos.x + pos.y * TEX_SIZE] = vel.y;
     }
-    pub fn arrays(
-        &'a self,
-    ) -> (
-        &'a [f32; M],
-        &'a [f32; M],
-    ) {
+    pub fn arrays(&'a self) -> (&'a [f32; M], &'a [f32; M]) {
         (&self.x_vel, &self.y_vel)
     }
 }
@@ -319,11 +311,11 @@ fn step_vel<const N: usize>(
     borders: bool,
 ) {
     // Copy velocity grids, so we have a copy of it before processing each step
-      let prev_vx_grid = &mut vx_grid.clone();
-      let prev_vy_grid = &mut vy_grid.clone();
+    let prev_vx_grid = &mut vx_grid.clone();
+    let prev_vy_grid = &mut vy_grid.clone();
 
-      let (prev_vx_grid, vx_grid) = (vx_grid, prev_vx_grid);
-      let (prev_vy_grid, vy_grid) = (vy_grid, prev_vy_grid);
+    let (prev_vx_grid, vx_grid) = (vx_grid, prev_vx_grid);
+    let (prev_vy_grid, vy_grid) = (vy_grid, prev_vy_grid);
 
     // Diffuse just like with density but with velocity instead
     diffuse(vx_grid, prev_vx_grid, grid_w, dt, diff, borders, 1);
@@ -391,13 +383,6 @@ pub fn step_fluid<const N: usize>(
     // let vy_grid_ = &mut vy_grid.to_vec()[..];
     // Step density, alter density grid
 
-    step_dens(dens_grid, grid.x_vel, grid.y_vel, grid_w, dt, diff, borders);
-    step_vel(
-        grid.x_vel,
-        grid.y_vel,
-        grid_w,
-        dt,
-        diff,
-        borders,
-    );
+    //step_dens(dens_grid, grid.x_vel, grid.y_vel, grid_w, dt, diff, borders);
+    step_vel(grid.x_vel, grid.y_vel, grid_w, dt, diff, borders);
 }
