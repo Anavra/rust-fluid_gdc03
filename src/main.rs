@@ -56,7 +56,7 @@ fn setup_shader(display: &GlutinFacade) -> glium::Program {
 fn main() {
     let display = setup_display();
     let shader = setup_shader(&display);
-    let (w_size, h_size) = display.get_window().unwrap().get_inner_size().unwrap();
+    //let (w_size, h_size) = display.get_window().unwrap().get_inner_size().unwrap();
 
     let vbo_data = vec![
         Vertex {
@@ -112,18 +112,21 @@ fn main() {
     // Set up fluids
 
     // Velocity grids
+    println!("Creating arrays");
     let mut vx_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
     let mut vy_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
     let mut vz_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
     let mut tex_data_ = [0.0; X_SIZE * Y_SIZE * Z_SIZE];
     // Create texture data buffer for fluid
 
+    println!("Creating grid");
     let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_, &mut vz_grid_);
 
     let mut last_t = Instant::now();
 
     let mut fps_list = Vec::<u128>::new();
     // let mut t = Duration::default();
+    println!("Starting loop");
     loop {
         let new_now = Instant::now();
         let dt = new_now.duration_since(last_t);
@@ -147,37 +150,37 @@ fn main() {
 
         // Adding point velocity sources to the grid
 
-        grid.set(
+        println!("Adding sources");
+        grid.add_velocity_source(
             Pos {
-                x: 200,
-                y: 100,
-                z: 1,
+                x: 2,
+                y: 2,
+                z: 2,
             },
             Vel {
-                x: 100.0,
-                y: -100.0,
+                x: 40.0,
+                y: -1.0,
                 z: 0.0,
             },
         );
-        grid.set(
+        grid.add_velocity_source(
             Pos {
-                x: 100,
-                y: 250,
-                z: 1,
+                x: 5,
+                y: 2,
+                z: 7,
             },
             Vel {
                 x: 0.0,
-                y: -200.0,
-                z: 0.0,
+                y: 26.0,
+                z: 55.0,
             },
         );
 
-
-
-
+        println!("Step fluid");
         // Process fluids
-        fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, true);
+        fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, false);
 
+        println!("Cow");
         // Re buffer texture
         use std::borrow::Cow;
         let raw_tex_3d = glium::texture::RawImage3d {
