@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-pub const TEX_SIZE: usize = 16;
-pub const X_SIZE: usize = 32;
-pub const Y_SIZE: usize = 32;
-pub const Z_SIZE: usize = 32;
+pub const TEX_SIZE: usize = 256;
+pub const X_SIZE: usize = 256;
+pub const Y_SIZE: usize = 256;
+pub const Z_SIZE: usize = 4;
 pub const SIZE: [usize; 3] = [X_SIZE, Y_SIZE, Z_SIZE];
 
 #[derive(Clone, Copy, Default)]
