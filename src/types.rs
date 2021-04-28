@@ -1,8 +1,7 @@
 #![allow(dead_code)]
-pub const TEX_SIZE: usize = 14;
-pub const X_SIZE: usize = 14;
-pub const Y_SIZE: usize = 14;
-pub const Z_SIZE: usize = 14;
+pub const X_SIZE: usize = 126;
+pub const Y_SIZE: usize = 126;
+pub const Z_SIZE: usize = 4;
 pub const SIZE_1D: usize = (X_SIZE+2)*(Y_SIZE+2)*(Z_SIZE+2);
 
 
@@ -56,20 +55,5 @@ impl<'a, const M: usize> Grid<'a, M> {
     }
     pub fn arrays(&'a self) -> (&'a [f32; M], &'a [f32; M], &'a [f32; M]) {
         (&self.x_vel, &self.y_vel, &self.z_vel)
-    }
-}
-
-/// A source of fluid.
-pub struct Source {
-    /// The index of the source in the grid array
-    pub ix: usize,
-    /// Value between 0 and 1, density of the fluid at source.
-    pub density: f32,
-}
-
-impl Source {
-    /// Create a new source, given an index into a float array for its position.
-    pub fn new(ix: usize, density: f32) -> Source {
-        Source { ix, density }
     }
 }

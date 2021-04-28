@@ -2,7 +2,6 @@
 extern crate glium;
 
 mod fluid;
-use fluid::*;
 mod types;
 use types::*;
 use glium::backend::glutin_backend::GlutinFacade;
@@ -35,13 +34,14 @@ static FRAG_SRC: &'static str = r#"
     uniform highp sampler3D tex;
     uniform highp sampler3D tex1;
     uniform highp sampler3D tex2;
+    uniform highp sampler3D tex3;
 
     in vec3 v_uv;
 
     out vec4 color;
 
     void main() {
-      color = vec4(texture(tex, v_uv).x, texture(tex1, v_uv).x, texture(tex2, v_uv).x, 1.0);
+      color = vec4(texture(tex, v_uv).x, texture(tex1, v_uv).x, texture(tex2, v_uv).x, texture(tex3, v_uv).x);
     }
 "#;
 
@@ -57,7 +57,6 @@ fn setup_shader(display: &GlutinFacade) -> glium::Program {
 fn main() {
     let display = setup_display();
     let shader = setup_shader(&display);
-    let (x_size, y_size) = display.get_window().unwrap().get_inner_size().unwrap();
     //println!("Display size: {}, {}", x_size, y_size);
 
     let vbo_data = vec![
@@ -128,17 +127,16 @@ fn main() {
         }
 
         // Adding point velocity sources to the grid
-
         grid.add_velocity_source(
             Pos {
-                x: 100,
-                y: 1,
-                z: 2,
+                x: 64,
+                y: 64,
+                z: 3,
             },
             Vel {
-                x: 333.0,
-                y: 0.0,
-                z: 333.0,
+                x: 0.0,
+                y: 300.0,
+                z: 300.0,
             },
         );
 
@@ -171,10 +169,18 @@ fn main() {
             depth: Z_SIZE as u32+2,
             format: glium::texture::ClientFormat::F32,
         };
+        let raw_tex_3d3 = glium::texture::RawImage3d {
+            data: Cow::from(grid.z_vel[..].to_vec()),
+            width: X_SIZE as u32+2,
+            height: Y_SIZE as u32+2,
+            depth: Z_SIZE as u32+2,
+            format: glium::texture::ClientFormat::F32,
+        };
 
         let texture = glium::texture::Texture3d::new(&display, raw_tex_3d).unwrap();
         let texture1 = glium::texture::Texture3d::new(&display, raw_tex_3d1).unwrap();
         let texture2 = glium::texture::Texture3d::new(&display, raw_tex_3d2).unwrap();
+        let texture3 = glium::texture::Texture3d::new(&display, raw_tex_3d3).unwrap();
         // Load texture into uniforms
 
         let uniforms = uniform! {
@@ -185,6 +191,9 @@ fn main() {
               .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
               .magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
               tex2: texture2.sampled()
+                .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
+                .magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear),
+                tex3: texture3.sampled()
                 .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)
                 .magnify_filter(glium::uniforms::MagnifySamplerFilter::Linear)
         };
