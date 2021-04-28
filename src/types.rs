@@ -1,9 +1,10 @@
 #![allow(dead_code)]
-pub const TEX_SIZE: usize = 256;
-pub const X_SIZE: usize = 256;
-pub const Y_SIZE: usize = 256;
-pub const Z_SIZE: usize = 4;
-pub const SIZE: [usize; 3] = [X_SIZE, Y_SIZE, Z_SIZE];
+pub const TEX_SIZE: usize = 14;
+pub const X_SIZE: usize = 14;
+pub const Y_SIZE: usize = 14;
+pub const Z_SIZE: usize = 14;
+pub const SIZE_1D: usize = (X_SIZE+2)*(Y_SIZE+2)*(Z_SIZE+2);
+
 
 #[derive(Clone, Copy, Default)]
 pub struct Vel {
@@ -37,7 +38,7 @@ impl<'a, const M: usize> Grid<'a, M> {
         }
     }
     pub fn get_index(&self, pos: Pos) -> usize {
-        return pos.x + (X_SIZE - 1) * (pos.y + (Y_SIZE - 1) * pos.z);
+        return pos.x + (X_SIZE + 2) * (pos.y + (Y_SIZE + 2) * pos.z);
     }
 
     pub fn get(&self, pos: Pos) -> Vel {

@@ -2,6 +2,7 @@
 extern crate glium;
 
 mod fluid;
+use fluid::*;
 mod types;
 use types::*;
 use glium::backend::glutin_backend::GlutinFacade;
@@ -56,7 +57,8 @@ fn setup_shader(display: &GlutinFacade) -> glium::Program {
 fn main() {
     let display = setup_display();
     let shader = setup_shader(&display);
-    //let (w_size, h_size) = display.get_window().unwrap().get_inner_size().unwrap();
+    let (x_size, y_size) = display.get_window().unwrap().get_inner_size().unwrap();
+    //println!("Display size: {}, {}", x_size, y_size);
 
     let vbo_data = vec![
         Vertex {
@@ -88,24 +90,22 @@ fn main() {
     let vbo = glium::VertexBuffer::new(&display, &vbo_data).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    // Set up fluids
 
     // Velocity grids
-    println!("Creating arrays");
-    let mut vx_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
-    let mut vy_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
-    let mut vz_grid_ = [0_f32; X_SIZE * Y_SIZE * Z_SIZE];
-    let mut tex_data_ = [0.0; X_SIZE * Y_SIZE * Z_SIZE];
+    let mut vx_grid_ = [0_f32; SIZE_1D];
+    let mut vy_grid_ = [0_f32; SIZE_1D];
+    let mut vz_grid_ = [0_f32; SIZE_1D];
+    let mut tex_data_ = [0.0; SIZE_1D];
     // Create texture data buffer for fluid
 
-    println!("Creating grid");
+
     let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_, &mut vz_grid_);
 
     let mut last_t = Instant::now();
 
     let mut fps_list = Vec::<u128>::new();
     // let mut t = Duration::default();
-    println!("Starting loop");
+
     loop {
         let new_now = Instant::now();
         let dt = new_now.duration_since(last_t);
@@ -129,11 +129,10 @@ fn main() {
 
         // Adding point velocity sources to the grid
 
-        println!("Adding sources");
         grid.add_velocity_source(
             Pos {
-                x: 16,
-                y: 16,
+                x: 100,
+                y: 1,
                 z: 2,
             },
             Vel {
@@ -143,38 +142,41 @@ fn main() {
             },
         );
 
-        println!("Step fluid");
         // Process fluids
         fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, true);
 
-        println!("Cow");
+
         // Re buffer texture
         use std::borrow::Cow;
         let raw_tex_3d = glium::texture::RawImage3d {
             data: Cow::from(tex_data_[..].to_vec()),
-            width: X_SIZE as u32,
-            height: Y_SIZE as u32,
-            depth: Z_SIZE as u32,
+            width: X_SIZE as u32+2,
+            height: Y_SIZE as u32+2,
+            depth: Z_SIZE as u32+2,
             format: glium::texture::ClientFormat::F32,
         };
+
         let raw_tex_3d1 = glium::texture::RawImage3d {
             data: Cow::from(grid.x_vel[..].to_vec()),
-            width: X_SIZE as u32,
-            height: Y_SIZE as u32,
-            depth: Z_SIZE as u32,
+            width: X_SIZE as u32+2,
+            height: Y_SIZE as u32+2,
+            depth: Z_SIZE as u32+2,
             format: glium::texture::ClientFormat::F32,
         };
+
         let raw_tex_3d2 = glium::texture::RawImage3d {
             data: Cow::from(grid.y_vel[..].to_vec()),
-            width: X_SIZE as u32,
-            height: Y_SIZE as u32,
-            depth: Z_SIZE as u32,
+            width: X_SIZE as u32+2,
+            height: Y_SIZE as u32+2,
+            depth: Z_SIZE as u32+2,
             format: glium::texture::ClientFormat::F32,
         };
+
         let texture = glium::texture::Texture3d::new(&display, raw_tex_3d).unwrap();
         let texture1 = glium::texture::Texture3d::new(&display, raw_tex_3d1).unwrap();
         let texture2 = glium::texture::Texture3d::new(&display, raw_tex_3d2).unwrap();
         // Load texture into uniforms
+
         let uniforms = uniform! {
           tex: texture.sampled()
             .wrap_function(glium::uniforms::SamplerWrapFunction::Clamp)

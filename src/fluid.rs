@@ -3,15 +3,11 @@ use types::*;
 
 macro_rules! IX {
     ( $x: expr, $y: expr,  $z: expr ) => {{
-        $x as usize + X_SIZE * ($y as usize + Y_SIZE * $z as usize)
+        $x as usize + (X_SIZE+2) * ($y as usize + (Y_SIZE+2) * $z as usize)
     }};
 }
 
-/// Add borders to the density grid. We can do this by just setting the density
-/// of the outer cells to be equal to the density of the cells inset by 1. This
-/// means the difference between the two cells is 0, so there will never be any
-/// flow outwards.
-/// # Params
+
 /// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls, 0 for dens.
 fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
     for ii in 0..X_SIZE {
