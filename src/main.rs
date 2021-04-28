@@ -2,8 +2,8 @@
 extern crate glium;
 
 mod fluid;
-
-use fluid::*;
+mod types;
+use types::*;
 use glium::backend::glutin_backend::GlutinFacade;
 use std::time::Instant;
 
@@ -71,19 +71,6 @@ fn main() {
             pos: [1.0, -1.0, 1.0],
             uv: [1.0, 0.0, 1.0],
         },
-        // Vertex {
-        //     pos: [-1.0, -1.0, -1.0],
-        //     uv: [0.0, 0.0, 0.0],
-        // },
-        //
-        // Vertex {
-        //     pos: [1.0, -1.0, -1.0],
-        //     uv: [1.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, 1.0, -1.0],
-        //     uv: [1.0, 1.0, 0.0],
-        // },
         Vertex {
             pos: [-1.0, 1.0, -1.0],
             uv: [0.0, 1.0, 0.0],
@@ -96,14 +83,6 @@ fn main() {
             pos: [1.0, -1.0, 1.0],
             uv: [1.0, 0.0, 1.0],
         },
-        // Vertex {
-        //     pos: [1.0, 1.0, 1.0],
-        //     uv: [1.0, 1.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, 1.0, 1.0],
-        //     uv: [0.0, 1.0, 1.0],
-        // },
     ];
 
     let vbo = glium::VertexBuffer::new(&display, &vbo_data).unwrap();
@@ -153,32 +132,20 @@ fn main() {
         println!("Adding sources");
         grid.add_velocity_source(
             Pos {
-                x: 2,
-                y: 2,
-                z: 2,
+                x: 16,
+                y: 16,
+                z: 16,
             },
             Vel {
-                x: 40.0,
-                y: -1.0,
-                z: 0.0,
-            },
-        );
-        grid.add_velocity_source(
-            Pos {
-                x: 5,
-                y: 2,
-                z: 7,
-            },
-            Vel {
-                x: 0.0,
-                y: 26.0,
-                z: 55.0,
+                x: 333.0,
+                y: 0.0,
+                z: 333.0,
             },
         );
 
         println!("Step fluid");
         // Process fluids
-        fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, false);
+        fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, true);
 
         println!("Cow");
         // Re buffer texture

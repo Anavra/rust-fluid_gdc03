@@ -1,82 +1,10 @@
-#![allow(dead_code)]
-pub const TEX_SIZE: usize = 16;
-pub const X_SIZE: usize = 16;
-pub const Y_SIZE: usize = 16;
-pub const Z_SIZE: usize = 16;
-pub const SIZE: [usize; 3] = [X_SIZE, Y_SIZE, Z_SIZE];
-
-#[derive(Clone, Copy, Default)]
-pub struct Vel {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-pub struct Pos {
-    pub x: usize,
-    pub y: usize,
-    pub z: usize,
-}
-
-pub struct Grid<'a, const M: usize> {
-    pub x_vel: &'a mut [f32; M],
-    pub y_vel: &'a mut [f32; M],
-    pub z_vel: &'a mut [f32; M],
-}
-impl<'a, const M: usize> Grid<'a, M> {
-    pub fn new(
-        vx_grid: &'a mut [f32; M],
-        vy_grid: &'a mut [f32; M],
-        vz_grid: &'a mut [f32; M],
-    ) -> Self {
-        // Velocity grids
-        Self {
-            x_vel: vx_grid,
-            y_vel: vy_grid,
-            z_vel: vz_grid,
-        }
-    }
-    pub fn get_index(&self, pos: Pos) -> usize {
-        return pos.x + (X_SIZE-1) * (pos.y + (Y_SIZE-1) * pos.z);
-    }
-
-    pub fn get(&self, pos: Pos) -> Vel {
-        let index = self.get_index(pos);
-        let x = self.x_vel[index];
-        let y = self.y_vel[index];
-        let z = self.y_vel[index];
-        Vel { x, y, z }
-    }
-    pub fn add_velocity_source(&mut self, pos: Pos, vel: Vel) {
-        let index = self.get_index(pos);
-        self.x_vel[index] = vel.x;
-        self.y_vel[index] = vel.y;
-        self.z_vel[index] = vel.z;
-    }
-    pub fn arrays(&'a self) -> (&'a [f32; M], &'a [f32; M], &'a [f32; M]) {
-        (&self.x_vel, &self.y_vel, &self.z_vel)
-    }
-}
-
 /// Macro for indexing into a 1D array using 3D coordinates.
+use types::*;
+
 macro_rules! IX {
     ( $x: expr, $y: expr,  $z: expr ) => {{
         $x as usize + X_SIZE * ($y as usize + Y_SIZE * $z as usize)
     }};
-}
-
-/// A source of fluid.
-pub struct Source {
-    /// The index of the source in the grid array
-    pub ix: usize,
-    /// Value between 0 and 1, density of the fluid at source.
-    pub density: f32,
-}
-
-impl Source {
-    /// Create a new source, given an index into a float array for its position.
-    pub fn new(ix: usize, density: f32) -> Source {
-        Source { ix, density }
-    }
 }
 
 /// Add borders to the density grid. We can do this by just setting the density
@@ -85,84 +13,84 @@ impl Source {
 /// flow outwards.
 /// # Params
 /// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls, 0 for dens.
-// fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
-//     //HORIZONTAL WALLS
-//     for ii in 0..X_SIZE {
-//         for kk in 0..Z_SIZE {
-//             let ix_top = IX!(ii, Y_SIZE - 1, kk);
-//             let ix_top_inset = IX!(ii, Y_SIZE - 2, kk);
-//             let ix_bot = IX!(ii, 0, kk);
-//             let ix_bot_inset = IX!(ii, 1, kk);
-//             grid[ix_top] = {
-//                 if b == 2 {
-//                     -grid[ix_top_inset]
-//                 } else {
-//                     grid[ix_top_inset]
-//                 }
-//             };
-//             grid[ix_bot] = {
-//                 if b == 2 {
-//                     -grid[ix_bot_inset]
-//                 } else {
-//                     grid[ix_bot_inset]
-//                 }
-//             };
-//         }
-//     }
-//     // SIDE WALLS
-//     for jj in 0..Y_SIZE {
-//         for kk in 0..Z_SIZE {
-//             let ix_left = IX!(0, jj, kk);
-//             let ix_left_inset = IX!(1, jj, kk);
-//             let ix_right = IX!(X_SIZE - 1, jj, kk);
-//             let ix_right_inset = IX!(X_SIZE - 2, jj, kk);
-//             grid[ix_left] = {
-//                 if b == 1 {
-//                     -grid[ix_left_inset]
-//                 } else {
-//                     grid[ix_left_inset]
-//                 }
-//             };
-//             grid[ix_right] = {
-//                 if b == 1 {
-//                     -grid[ix_right_inset]
-//                 } else {
-//                     grid[ix_right_inset]
-//                 }
-//             };
-//         }
-//     }
-//     // BACK - FRONT WALLS
-//     for ii in 0..X_SIZE {
-//         for jj in 0..Y_SIZE {
-//             let ix_front = IX!(ii, jj, 0);
-//             let ix_front_inset = IX!(ii, jj, 1);
-//             let ix_back = IX!(ii, jj, Z_SIZE - 1);
-//             let ix_back_inset = IX!(ii, jj, Z_SIZE - 2);
-//             grid[ix_front] = {
-//                 if b == 3 {
-//                     -grid[ix_front_inset]
-//                 } else {
-//                     grid[ix_front_inset]
-//                 }
-//             };
-//             grid[ix_back] = {
-//                 if b == 3 {
-//                     -grid[ix_back_inset]
-//                 } else {
-//                     grid[ix_back_inset]
-//                 }
-//             };
-//         }
-//     }
-//     grid[IX!(0, 0, Z_SIZE-1)] = 0.5 * (grid[IX!(1, 0, Z_SIZE-1)] + grid[IX!(0, 1, Z_SIZE-1)]);
-//     grid[IX!(0, Y_SIZE - 2, Z_SIZE-1)] =
-//         0.5 * (grid[IX!(1, Y_SIZE - 2, Z_SIZE-1)] + grid[IX!(0, Y_SIZE - 2, Z_SIZE-1)]);
-//     grid[IX!(X_SIZE - 2, 0, Z_SIZE-1)] =
-//         0.5 * (grid[IX!(X_SIZE - 2, 0, Z_SIZE-1)] + grid[IX!(X_SIZE - 2, 1, Z_SIZE-1)]);
-//     grid[IX!(X_SIZE - 2, Y_SIZE - 2, Z_SIZE-1)] = 0.5
-//         * (grid[IX!(X_SIZE - 3, Y_SIZE - 2, Z_SIZE-1)] + grid[IX!(X_SIZE - 2, Y_SIZE- 3, Z_SIZE-1)]);
-// }
+fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
+    for ii in 0..X_SIZE {
+        for kk in 0..Z_SIZE {
+            let ix_top = IX!(ii, Y_SIZE - 1, kk);
+            let ix_top_inset = IX!(ii, Y_SIZE - 2, kk);
+            let ix_bot = IX!(ii, 0, kk);
+            let ix_bot_inset = IX!(ii, 1, kk);
+            grid[ix_top] = {
+                if b == 2 {
+                    -grid[ix_top_inset]
+                } else {
+                    grid[ix_top_inset]
+                }
+            };
+            grid[ix_bot] = {
+                if b == 2 {
+                    -grid[ix_bot_inset]
+                } else {
+                    grid[ix_bot_inset]
+                }
+            };
+        }
+    }
+    // SIDE WALLS
+    for jj in 0..Y_SIZE {
+        for kk in 0..Z_SIZE {
+            let ix_left = IX!(0, jj, kk);
+            let ix_left_inset = IX!(1, jj, kk);
+            let ix_right = IX!(X_SIZE - 1, jj, kk);
+            let ix_right_inset = IX!(X_SIZE - 2, jj, kk);
+            grid[ix_left] = {
+                if b == 1 {
+                    -grid[ix_left_inset]
+                } else {
+                    grid[ix_left_inset]
+                }
+            };
+            grid[ix_right] = {
+                if b == 1 {
+                    -grid[ix_right_inset]
+                } else {
+                    grid[ix_right_inset]
+                }
+            };
+        }
+    }
+    // BACK - FRONT WALLS
+    for ii in 0..X_SIZE {
+        for jj in 0..Y_SIZE {
+            let ix_front = IX!(ii, jj, 0);
+            let ix_front_inset = IX!(ii, jj, 1);
+            let ix_back = IX!(ii, jj, Z_SIZE - 1);
+            let ix_back_inset = IX!(ii, jj, Z_SIZE - 2);
+            grid[ix_front] = {
+                if b == 3 {
+                    -grid[ix_front_inset]
+                } else {
+                    grid[ix_front_inset]
+                }
+            };
+            grid[ix_back] = {
+                if b == 3 {
+                    -grid[ix_back_inset]
+                } else {
+                    grid[ix_back_inset]
+                }
+            };
+        }
+    }
+    grid[IX!(0, 0, Z_SIZE - 1)] = 0.5 * (grid[IX!(1, 0, Z_SIZE - 1)] + grid[IX!(0, 1, Z_SIZE - 1)]);
+    grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)] =
+        0.5 * (grid[IX!(1, Y_SIZE - 2, Z_SIZE - 1)] + grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)]);
+    grid[IX!(X_SIZE - 2, 0, Z_SIZE - 1)] =
+        0.5 * (grid[IX!(X_SIZE - 2, 0, Z_SIZE - 1)] + grid[IX!(X_SIZE - 2, 1, Z_SIZE - 1)]);
+    grid[IX!(X_SIZE - 2, Y_SIZE - 2, Z_SIZE - 1)] = 0.5
+        * (grid[IX!(X_SIZE - 3, Y_SIZE - 2, Z_SIZE - 1)]
+            + grid[IX!(X_SIZE - 2, Y_SIZE - 3, Z_SIZE - 1)]);
+}
 
 /// Align velocity with neighbors. diff is viscosity.
 fn diffuse<const N: usize>(
@@ -202,7 +130,7 @@ fn diffuse<const N: usize>(
             }
         }
         if borders {
-            //set_borders(grid, b)
+            set_borders(grid, b)
         }
     }
 }
@@ -287,7 +215,7 @@ fn advect<const N: usize>(
         }
     }
     if borders {
-        //set_borders(grid, b);
+        set_borders(grid, b);
     }
 }
 
@@ -319,9 +247,9 @@ fn project<const N: usize>(
         }
     }
     if borders {
-        //set_borders(prev_y, 0);
-        //set_borders(prev_x, 0);
-        //set_borders(prev_z, 0);
+        set_borders(prev_y, 1);
+        set_borders(prev_x, 2);
+        set_borders(prev_z, 3);
     }
 
     let iterations = 1;
@@ -346,7 +274,7 @@ fn project<const N: usize>(
             }
         }
         if borders {
-            //set_borders(prev_x, 0)
+            set_borders(prev_x, 0)
         }
     }
 
@@ -365,9 +293,9 @@ fn project<const N: usize>(
         }
     }
     if borders {
-        //set_borders(vx_grid, 1);
-        //set_borders(vy_grid, 2);
-        //set_borders(vz_grid, 3);
+        set_borders(vx_grid, 1);
+        set_borders(vy_grid, 2);
+        set_borders(vz_grid, 3);
     }
 }
 
@@ -416,24 +344,21 @@ fn step_vel<const N: usize>(
     diff: f32,
     borders: bool,
 ) {
-    println!("step_vel: cloning arrays");
     let prev_x = &mut vx_grid.clone();
     let prev_y = &mut vy_grid.clone();
     let prev_z = &mut vz_grid.clone();
 
     // Swap grids
-    println!("step_vel: swapping grids");
     let (prev_x, vx_grid) = (vx_grid, prev_x);
     let (prev_y, vy_grid) = (vy_grid, prev_y);
     let (prev_z, vz_grid) = (vz_grid, prev_z);
 
     // Diffuse just like with density but with velocity instead
-    println!("Starting Diffussion");
     diffuse(vx_grid, prev_x, dt, diff, borders, 1);
-
     diffuse(vy_grid, prev_y, dt, diff, borders, 2);
     diffuse(vz_grid, prev_z, dt, diff, borders, 3);
 
+    // For mass conservation before advect
     project(vx_grid, vy_grid, vz_grid, prev_x, prev_y, prev_z, borders);
 
     // Swap grids
@@ -456,13 +381,6 @@ pub fn step_fluid<const N: usize>(
     viscosity: f32,
     borders: bool,
 ) {
-    // Step density, alter density grid
-
-    println!("Call step_dens");
     step_dens(dens_grid, grid, dt, viscosity, borders);
-
-    println!("Call step_vel");
-    println!("{:?}", grid.y_vel.len());
-    //step_woot(grid.x_vel, grid.y_vel, grid.z_vel, dt, viscosity, borders);
     step_vel(grid.x_vel, grid.y_vel, grid.z_vel, dt, viscosity, borders);
 }
