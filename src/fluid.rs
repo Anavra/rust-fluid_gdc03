@@ -144,15 +144,17 @@ fn advect<const N: usize>(
     borders: bool,
     b: u8,
 ) {
-    let dt0 = dt * X_SIZE as f32;
+    let dt0x = dt * X_SIZE as f32;
+    let dt0y = dt * Y_SIZE as f32;
+    let dt0z = dt * Z_SIZE as f32;
 
     for ii in 1..X_SIZE - 1 {
         for jj in 1..Y_SIZE - 1 {
             for kk in 1..Z_SIZE - 1 {
                 let ix = IX!(ii, jj, kk);
-                let mut x = ii as f32 - dt0 * vx_grid[ix];
-                let mut y = jj as f32 - dt0 * vy_grid[ix];
-                let mut z = kk as f32 - dt0 * vz_grid[ix];
+                let mut x = ii as f32 - dt0x * vx_grid[ix];
+                let mut y = jj as f32 - dt0y * vy_grid[ix];
+                let mut z = kk as f32 - dt0z * vz_grid[ix];
 
                 //X
                 if x < 0.5 {
@@ -304,7 +306,7 @@ fn step_dens<const N: usize>(
     borders: bool,
 ) {
     // Make a copy of the dens_grid
-    // let mut prev_dens_grid = dens_grid.to_vec();
+    // let mut prev_dens_grid = dens_grid.to_vec();X_SIZE
     // let prev_dens_grid = &mut prev_dens_grid[..];
     let prev_dens_grid = &mut dens_grid.clone();
 
