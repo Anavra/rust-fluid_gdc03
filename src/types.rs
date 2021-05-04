@@ -37,6 +37,10 @@ impl WindGrid {
         self.y_vel[index] = vel.y;
         self.z_vel[index] = vel.z;
     }
+    pub fn add_density_source(&mut self, pos: Pos, dens: f32) {
+        let index = Self::get_index(pos.x as usize, pos.y as usize, pos.z as usize);
+        self.density[index] = dens;
+    }
 
     pub fn get_index(x: usize, y: usize, z: usize) -> usize {
         x + (X_SIZE + 2) * (y + (Y_SIZE + 2) * z)
@@ -53,46 +57,5 @@ impl WindGrid {
         let z = self.y_vel[index] as f32;
 
         Vel { x, y, z }
-    }
-}
-
-pub struct Grid<'a, const M: usize> {
-    pub x_vel: &'a mut [f32; M],
-    pub y_vel: &'a mut [f32; M],
-    pub z_vel: &'a mut [f32; M],
-}
-
-impl<'a, const M: usize> Grid<'a, M> {
-    pub fn new(
-        vx_grid: &'a mut [f32; M],
-        vy_grid: &'a mut [f32; M],
-        vz_grid: &'a mut [f32; M],
-    ) -> Self {
-        // Velocity grids
-        Self {
-            x_vel: vx_grid,
-            y_vel: vy_grid,
-            z_vel: vz_grid,
-        }
-    }
-    pub fn get_index(&self, pos: Pos) -> usize {
-        return pos.x + (X_SIZE + 2) * (pos.y + (Y_SIZE + 2) * pos.z);
-    }
-
-    pub fn get(&self, pos: Pos) -> Vel {
-        let index = self.get_index(pos);
-        let x = self.x_vel[index];
-        let y = self.y_vel[index];
-        let z = self.y_vel[index];
-        Vel { x, y, z }
-    }
-    pub fn add_velocity_source(&mut self, pos: Pos, vel: Vel) {
-        let index = self.get_index(pos);
-        self.x_vel[index] = vel.x;
-        self.y_vel[index] = vel.y;
-        self.z_vel[index] = vel.z;
-    }
-    pub fn arrays(&'a self) -> (&'a [f32; M], &'a [f32; M], &'a [f32; M]) {
-        (&self.x_vel, &self.y_vel, &self.z_vel)
     }
 }

@@ -223,14 +223,18 @@ fn main() {
                 glium::glutin::Event::MouseMoved(x, y) => {
                     let x = (x as f32 / display_w as f32)*X_SIZE as f32;
                     let y = ((display_h as f32 - y as f32) / display_h as f32)*Y_SIZE as f32;
+
                     wind_grid.add_velocity_source(
                         Pos { x: x as usize, y: y as usize, z: 2 },
                         Vel {
-                            x: 700.0,
-                            y: 700.0,
-                            z: 10.0,
+                            x: 20.0,
+                            y: 20.0,
+                            z: 20.0,
                         },
                     );
+                }
+                glium::glutin::Event::MouseInput(Pressed, Left) => {
+                    wind_grid.add_density_source(Pos { x: 128 as usize, y: 128, z: 2 }, 33.0)
                 }
                 _ => (),
             }
