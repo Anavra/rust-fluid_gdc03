@@ -1,15 +1,13 @@
-/// Macro for indexing into a 1D array using 3D coordinates.
 use types::*;
-
+/// Macro for indexing into a 1D array using 3D coordinates.
 macro_rules! IX {
-    ( $x: expr, $y: expr,  $z: expr ) => {{
-        $x as usize + (X_SIZE+2) * ($y as usize + (Y_SIZE+2) * $z as usize)
-    }};
+    ( $x: expr, $y: expr,  $z: expr ) => {{ $x as usize + (X_SIZE + 2) * ($y as usize + (Y_SIZE + 2) * $z as usize) }};
 }
 
-
-/// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls, 0 for dens.
-fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
+///
+/// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls,
+///   0 for dens.
+fn set_borders(grid: &mut Box<[f32]>, b: u8) {
     for ii in 0..X_SIZE {
         for kk in 0..Z_SIZE {
             let ix_top = IX!(ii, Y_SIZE - 1, kk);
@@ -78,6 +76,7 @@ fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
             };
         }
     }
+    // TO DO: Fix code below
     grid[IX!(0, 0, Z_SIZE - 1)] = 0.5 * (grid[IX!(1, 0, Z_SIZE - 1)] + grid[IX!(0, 1, Z_SIZE - 1)]);
     grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)] =
         0.5 * (grid[IX!(1, Y_SIZE - 2, Z_SIZE - 1)] + grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)]);
@@ -89,9 +88,9 @@ fn set_borders<const N: usize>(grid: &mut [f32; N], b: u8) {
 }
 
 /// Align velocity with neighbors. diff is viscosity.
-fn diffuse<const N: usize>(
-    grid: &mut [f32; N],
-    prev_grid: &mut [f32; N],
+fn diffuse(
+    grid: &mut Box<[f32]>,
+    prev_grid: &mut Box<[f32]>,
     dt: f32,
     viscosity: f32,
     borders: bool,
@@ -134,12 +133,13 @@ fn diffuse<const N: usize>(
 /// Process density movement via velocity
 /// # Params
 /// * `b` - Border type, see set_borders
-fn advect<const N: usize>(
-    grid: &mut [f32; N],
-    prev_grid: &[f32; N],
-    vx_grid: &[f32; N],
-    vy_grid: &[f32; N],
-    vz_grid: &[f32; N],
+#[allow(clippy::too_many_arguments)]
+fn advect(
+    grid:  &mut Box<[f32]>,
+    prev_grid: &Box<[f32]>,
+    vx_grid: &Box<[f32]>,
+    vy_grid: &Box<[f32]>,
+    vz_grid: &Box<[f32]>,
     dt: f32,
     borders: bool,
     b: u8,
@@ -218,13 +218,14 @@ fn advect<const N: usize>(
 }
 
 // Forces velocity to be mass conserving
-fn project<const N: usize>(
-    vx_grid: &mut [f32; N],
-    vy_grid: &mut [f32; N],
-    vz_grid: &mut [f32; N],
-    prev_x: &mut [f32; N],
-    prev_y: &mut [f32; N],
-    prev_z: &mut [f32; N],
+#[allow(clippy::too_many_arguments)]
+fn project(
+    vx_grid: &mut Box<[f32]>,
+    vy_grid: &mut Box<[f32]>,
+    vz_grid: &mut Box<[f32]>,
+    prev_x: &mut Box<[f32]>,
+    prev_y: &mut Box<[f32]>,
+    prev_z: &mut Box<[f32]>,
     borders: bool,
 ) {
     for ii in 1..X_SIZE - 1 {
@@ -298,9 +299,11 @@ fn project<const N: usize>(
 }
 
 /// Step density
-fn step_dens<const N: usize>(
-    dens_grid: &mut [f32; N],
-    grid: &mut Grid<N>,
+fn step_dens(
+    dens_grid:  &mut Box<[f32]>,
+    vx_grid:  &mut Box<[f32]>,
+    vy_grid:  &mut Box<[f32]>,
+    vz_grid:  &mut Box<[f32]>,
     dt: f32,
     diff: f32,
     borders: bool,
@@ -324,9 +327,9 @@ fn step_dens<const N: usize>(
     advect(
         dens_grid,
         prev_dens_grid,
-        grid.x_vel,
-        grid.y_vel,
-        grid.z_vel,
+        vx_grid,
+        vy_grid,
+        vz_grid,
         dt,
         borders,
         0,
@@ -334,10 +337,10 @@ fn step_dens<const N: usize>(
 }
 
 /// Step velocity
-fn step_vel<const N: usize>(
-    vx_grid: &mut [f32; N],
-    vy_grid: &mut [f32; N],
-    vz_grid: &mut [f32; N],
+fn step_vel(
+    vx_grid: &mut Box<[f32]>,
+    vy_grid: &mut Box<[f32]>,
+    vz_grid: &mut Box<[f32]>,
     dt: f32,
     diff: f32,
     borders: bool,
@@ -372,13 +375,15 @@ fn step_vel<const N: usize>(
     project(vx_grid, vy_grid, vz_grid, prev_x, prev_y, prev_z, borders);
 }
 
-pub fn step_fluid<const N: usize>(
-    dens_grid: &mut [f32; N],
-    grid: &mut Grid<N>,
+pub fn step_fluid(
+    dens_grid: &mut Box<[f32]>,
+    vx_grid: &mut Box<[f32]>,
+    vy_grid: &mut Box<[f32]>,
+    vz_grid: &mut Box<[f32]>,
     dt: f32,
     viscosity: f32,
     borders: bool,
 ) {
-    step_dens(dens_grid, grid, dt, viscosity, borders);
-    step_vel(grid.x_vel, grid.y_vel, grid.z_vel, dt, viscosity, borders);
+    step_dens(dens_grid, vx_grid, vy_grid, vz_grid, dt, viscosity, borders);
+    step_vel(vx_grid, vy_grid, vz_grid, dt, viscosity, borders);
 }

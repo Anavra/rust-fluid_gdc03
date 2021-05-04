@@ -89,14 +89,15 @@ fn main() {
     let vbo = glium::VertexBuffer::new(&display, &vbo_data).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    // Velocity grids
-    let mut vx_grid_ = [0_f32; SIZE_1D];
-    let mut vy_grid_ = [0_f32; SIZE_1D];
-    let mut vz_grid_ = [0_f32; SIZE_1D];
-    let mut tex_data_ = [0.0; SIZE_1D];
+
     // Create texture data buffer for fluid
 
-    let mut grid = Grid::new(&mut vx_grid_, &mut vy_grid_, &mut vz_grid_);
+let mut wind_grid = WindGrid {
+            x_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+            y_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+            z_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+            density: vec![0_f32; SIZE_1D].into_boxed_slice(),
+        };
 
     let mut last_t = Instant::now();
 
@@ -125,22 +126,39 @@ fn main() {
         }
 
         // Adding point velocity sources to the grid
-        grid.add_velocity_source(
-            Pos { x: 64, y: 64, z: 3 },
+        wind_grid.add_velocity_source(
+            Pos { x: 128, y: 128, z: 2 },
             Vel {
                 x: 0.0,
                 y: 300.0,
                 z: 300.0,
             },
         );
+        
+        wind_grid.add_velocity_source(
+            Pos { x: 128, y: 128, z: 2 },
+            Vel {
+                x: 300.0,
+                y: 0.0,
+                z: 0.0,
+            },
+        );
 
         // Process fluids
-        fluid::step_fluid(&mut tex_data_, &mut grid, ms as f32 / 1000.0, 0.1, true);
+        fluid::step_fluid(
+            &mut wind_grid.density,
+            &mut wind_grid.x_vel,
+            &mut wind_grid.y_vel,
+            &mut wind_grid.z_vel,
+            0.001,
+            0.1,
+            true,
+        );
 
         // Re buffer texture
         use std::borrow::Cow;
         let raw_tex_3d = glium::texture::RawImage3d {
-            data: Cow::from(tex_data_[..].to_vec()),
+            data: Cow::from(wind_grid.density[..].to_vec()),
             width: X_SIZE as u32 + 2,
             height: Y_SIZE as u32 + 2,
             depth: Z_SIZE as u32 + 2,
@@ -148,7 +166,7 @@ fn main() {
         };
 
         let raw_tex_3d1 = glium::texture::RawImage3d {
-            data: Cow::from(grid.x_vel[..].to_vec()),
+            data: Cow::from(wind_grid.x_vel[..].to_vec()),
             width: X_SIZE as u32 + 2,
             height: Y_SIZE as u32 + 2,
             depth: Z_SIZE as u32 + 2,
@@ -156,14 +174,14 @@ fn main() {
         };
 
         let raw_tex_3d2 = glium::texture::RawImage3d {
-            data: Cow::from(grid.y_vel[..].to_vec()),
+            data: Cow::from(wind_grid.y_vel[..].to_vec()),
             width: X_SIZE as u32 + 2,
             height: Y_SIZE as u32 + 2,
             depth: Z_SIZE as u32 + 2,
             format: glium::texture::ClientFormat::F32,
         };
         let raw_tex_3d3 = glium::texture::RawImage3d {
-            data: Cow::from(grid.z_vel[..].to_vec()),
+            data: Cow::from(wind_grid.z_vel[..].to_vec()),
             width: X_SIZE as u32 + 2,
             height: Y_SIZE as u32 + 2,
             depth: Z_SIZE as u32 + 2,
