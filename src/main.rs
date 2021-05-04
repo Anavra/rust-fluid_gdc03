@@ -57,6 +57,7 @@ fn setup_shader(display: &GlutinFacade) -> glium::Program {
 fn main() {
     let display = setup_display();
     let shader = setup_shader(&display);
+    let (display_w, display_h) = display.get_window().unwrap().get_inner_size().unwrap();
     //println!("Display size: {}, {}", x_size, y_size);
 
     let vbo_data = vec![
@@ -84,20 +85,118 @@ fn main() {
             pos: [1.0, -1.0, 1.0],
             uv: [1.0, 0.0, 1.0],
         },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            uv: [1.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, 1.0],
+            uv: [1.0, 1.0, 1.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, -1.0],
+            uv: [1.0, 1.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, 1.0, -1.0],
+            uv: [1.0, 1.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, -1.0],
+            uv: [1.0, 0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            uv: [1.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            uv: [1.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            uv: [0.0, 0.0, 0.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, -1.0],
+            uv: [1.0, 0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            uv: [0.0, 0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            uv: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [1.0, -1.0, 1.0],
+            uv: [1.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, -1.0],
+            uv: [0.0, 0.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            uv: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, -1.0],
+            uv: [0.0, 1.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, -1.0],
+            uv: [0.0, 1.0, 0.0],
+        },
+        Vertex {
+            pos: [-1.0, 1.0, 1.0],
+            uv: [0.0, 1.0, 1.0],
+        },
+        Vertex {
+            pos: [-1.0, -1.0, 1.0],
+            uv: [0.0, 0.0, 1.0],
+        },
+        // Vertex {
+        //     pos: [-1.0, -1.0, 1.0],
+        //     uv: [0.0, 0.0, 1.0],
+        // },
+        // Vertex {
+        //     pos: [-1.0, 1.0, 1.0],
+        //     uv: [0.0, 1.0, 1.0],
+        // },
+        // Vertex {
+        //     pos: [1.0, 1.0, 1.0],
+        //     uv: [1.0, 1.0, 1.0],
+        // },
+        //
+        // Vertex {
+        //     pos: [-1.0, -1.0, 1.0],
+        //     uv: [0.0, 0.0, 1.0],
+        // },
+        //
+        // Vertex {
+        //     pos: [1.0, -1.0, 1.0],
+        //     uv: [1.0, 0.0, 1.0],
+        // },
+        //
+        // Vertex {
+        //     pos: [1.0, 1.0, 1.0],
+        //     uv: [1.0, 1.0, 1.0],
+        // },
     ];
 
     let vbo = glium::VertexBuffer::new(&display, &vbo_data).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-
     // Create texture data buffer for fluid
 
-let mut wind_grid = WindGrid {
-            x_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
-            y_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
-            z_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
-            density: vec![0_f32; SIZE_1D].into_boxed_slice(),
-        };
+    let mut wind_grid = WindGrid {
+        x_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+        y_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+        z_vel: vec![0_f32; SIZE_1D].into_boxed_slice(),
+        density: vec![0_f32; SIZE_1D].into_boxed_slice(),
+    };
 
     let mut last_t = Instant::now();
 
@@ -121,28 +220,24 @@ let mut wind_grid = WindGrid {
         for ev in display.poll_events() {
             match ev {
                 glium::glutin::Event::Closed => return, // the window has been closed by the user
+                glium::glutin::Event::MouseMoved(x, y) => {
+                    let x = (x as f32 / display_w as f32)*X_SIZE as f32;
+                    let y = ((display_h as f32 - y as f32) / display_h as f32)*Y_SIZE as f32;
+                    wind_grid.add_velocity_source(
+                        Pos { x: x as usize, y: y as usize, z: 2 },
+                        Vel {
+                            x: 700.0,
+                            y: 700.0,
+                            z: 10.0,
+                        },
+                    );
+                }
                 _ => (),
             }
         }
 
-        // Adding point velocity sources to the grid
-        wind_grid.add_velocity_source(
-            Pos { x: 128, y: 128, z: 2 },
-            Vel {
-                x: 0.0,
-                y: 300.0,
-                z: 300.0,
-            },
-        );
-        
-        wind_grid.add_velocity_source(
-            Pos { x: 128, y: 128, z: 2 },
-            Vel {
-                x: 300.0,
-                y: 0.0,
-                z: 0.0,
-            },
-        );
+        //Adding point velocity sources to the grid
+
 
         // Process fluids
         fluid::step_fluid(
