@@ -89,7 +89,7 @@ fn set_borders(grid: &mut Box<[f32]>, b: u8) {
 
 fn linear_solver(
     grid: &mut Box<[f32]>,
-    prev_grid: &mut Box<[f32]>,
+    prev_grid: &Box<[f32]>,
     diff_rate: f32,
     denominator: f32,
     borders: bool,
@@ -149,10 +149,10 @@ fn trace_backwards(
     (p0, p1, d0, d1)
 }
 
-/// Align velocity with neighbors. Depends on viscosity.
+/// Diffuse values with neighbors. Depends on viscosity (non-viscosity).
 fn diffuse(
     grid: &mut Box<[f32]>,
-    prev_grid: &mut Box<[f32]>,
+    prev_grid: &Box<[f32]>,
     dt: f32,
     viscosity: f32,
     borders: bool,
@@ -165,6 +165,7 @@ fn diffuse(
     linear_solver(grid, prev_grid, diff_rate, 1.0 + 6.0 * diff_rate, borders, b)
 }
 
+/// Move values accross velocity fields
 #[allow(clippy::too_many_arguments)]
 fn advect(
     grid:  &mut Box<[f32]>,
