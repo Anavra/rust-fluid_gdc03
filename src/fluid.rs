@@ -87,27 +87,21 @@ fn set_borders(grid: &mut Box<[f32]>, b: u8) {
             + grid[IX!(X_SIZE - 2, Y_SIZE - 3, Z_SIZE - 1)]);
 }
 
-/// Align velocity with neighbors. diff is viscosity.
-fn diffuse(
+fn linear_solver(
     grid: &mut Box<[f32]>,
     prev_grid: &mut Box<[f32]>,
-    dt: f32,
-    viscosity: f32,
+    diff_rate: f32,
+    denominator: f32,
     borders: bool,
     b: u8,
-) {
-    let diff_rate = dt * viscosity * grid.len() as f32;
+){    // For each cell we get contributions from all 6 direct neighbors
     let iterations = 1;
-    if viscosity == 0.0 {
-        return;
-    }
 
-    // For each cell we get contributions from all 6 direct neighbors
     for _ in 0..iterations {
         for ii in 1..X_SIZE - 1 {
             for jj in 1..Y_SIZE - 1 {
                 for kk in 1..Z_SIZE - 1 {
-                    let ix = IX!(ii, jj, kk);
+                    let ix = IX!(ii, jj, kk); //Index of current cell
                     let ix_up = IX!(ii, jj - 1, kk); // 1 row up
                     let ix_down = IX!(ii, jj + 1, kk); // 1 row down
                     let ix_back = IX!(ii, jj, kk - 1); // 1 row back
@@ -120,7 +114,7 @@ fn diffuse(
                                 + grid[ix_down]
                                 + grid[ix_back]
                                 + grid[ix_front]))
-                        / (1.0 + 6.0 * diff_rate); // 6 is number of neighbors
+                        / denominator; // 6 is number of neighbors
                 }
             }
         }
@@ -128,6 +122,22 @@ fn diffuse(
             set_borders(grid, b)
         }
     }
+
+}
+/// Align velocity with neighbors. diff is viscosity.
+fn diffuse(
+    grid: &mut Box<[f32]>,
+    prev_grid: &mut Box<[f32]>,
+    dt: f32,
+    viscosity: f32,
+    borders: bool,
+    b: u8,
+) {
+    let diff_rate = dt * viscosity * grid.len() as f32;
+    if viscosity == 0.0 {
+        return;
+    }
+    linear_solver(grid, prev_grid, diff_rate, 1.0 + 6.0 * diff_rate, borders, b)
 }
 
 /// Process density movement via velocity
@@ -251,31 +261,8 @@ fn project(
         set_borders(prev_z, 3);
     }
 
-    let iterations = 1;
-    for _ in 0..iterations {
-        for ii in 1..X_SIZE - 1 {
-            for jj in 1..Y_SIZE - 1 {
-                for kk in 1..Z_SIZE - 1 {
-                    let ix = IX!(ii, jj, kk);
-                    let ix_up = IX!(ii, jj - 1, kk); // 1 row up
-                    let ix_down = IX!(ii, jj + 1, kk); // 1 row down
-                    let ix_back = IX!(ii, jj, kk - 1); // 1 row back
-                    let ix_front = IX!(ii, jj, kk + 1); // 1 row front
-                    prev_x[ix] = (prev_y[ix]
-                        + prev_x[ix - 1]
-                        + prev_x[ix + 1]
-                        + prev_x[ix_up]
-                        + prev_x[ix_down]
-                        + prev_x[ix_back]
-                        + prev_x[ix_front])
-                        / 6.0;
-                }
-            }
-        }
-        if borders {
-            set_borders(prev_x, 0)
-        }
-    }
+    //Gauss seidel between x and y velocity grids only
+    linear_solver(prev_x, prev_y, 1.0, 6.0, false, 0);
 
     for ii in 1..X_SIZE - 1 {
         for jj in 1..Y_SIZE - 1 {
