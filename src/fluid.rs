@@ -98,9 +98,9 @@ fn linear_solver(
     let iterations = 1;
 
     for _ in 0..iterations {
-        for ii in 1..X_SIZE - 1 {
-            for jj in 1..Y_SIZE - 1 {
-                for kk in 1..Z_SIZE - 1 {
+        for ii in 1..=X_SIZE {
+            for jj in 1..=Y_SIZE  {
+                for kk in 1..=Z_SIZE  {
                     let ix = IX!(ii, jj, kk); //Index of current cell
                     let ix_up = IX!(ii, jj - 1, kk); // 1 row up
                     let ix_down = IX!(ii, jj + 1, kk); // 1 row down
@@ -114,7 +114,7 @@ fn linear_solver(
                                 + grid[ix_down]
                                 + grid[ix_back]
                                 + grid[ix_front]))
-                        / denominator; // 6 is number of neighbors
+                        / denominator;
                 }
             }
         }
@@ -140,9 +140,6 @@ fn diffuse(
     linear_solver(grid, prev_grid, diff_rate, 1.0 + 6.0 * diff_rate, borders, b)
 }
 
-/// Process density movement via velocity
-/// # Params
-/// * `b` - Border type, see set_borders
 #[allow(clippy::too_many_arguments)]
 fn advect(
     grid:  &mut Box<[f32]>,
@@ -158,9 +155,9 @@ fn advect(
     let dt0y = dt * Y_SIZE as f32;
     let dt0z = dt * Z_SIZE as f32;
 
-    for ii in 1..X_SIZE - 1 {
-        for jj in 1..Y_SIZE - 1 {
-            for kk in 1..Z_SIZE - 1 {
+    for ii in 1..=X_SIZE {
+        for jj in 1..=Y_SIZE  {
+            for kk in 1..=Z_SIZE  {
                 let ix = IX!(ii, jj, kk);
                 let mut x = ii as f32 - dt0x * vx_grid[ix];
                 let mut y = jj as f32 - dt0y * vy_grid[ix];
@@ -238,19 +235,18 @@ fn project(
     prev_z: &mut Box<[f32]>,
     borders: bool,
 ) {
-    for ii in 1..X_SIZE - 1 {
-        for jj in 1..Y_SIZE - 1 {
-            for kk in 1..Z_SIZE - 1 {
+    for ii in 1..=X_SIZE {
+        for jj in 1..=Y_SIZE  {
+            for kk in 1..=Z_SIZE  {
                 let ix = IX!(ii, jj, kk);
                 let ix_up = IX!(ii, jj - 1, kk); // 1 row up
                 let ix_down = IX!(ii, jj + 1, kk); // 1 row down
                 let ix_back = IX!(ii, jj, kk - 1); // 1 row back
                 let ix_front = IX!(ii, jj, kk + 1); // 1 row front
                 prev_y[ix] = -0.5
-                    * Y_SIZE as f32
-                    * (vx_grid[ix + 1] - vx_grid[ix - 1] + vy_grid[ix_down] - vy_grid[ix_up]
-                        + vz_grid[ix_front]
-                        - vz_grid[ix_back]);
+                    * ((vx_grid[ix + 1] - vx_grid[ix - 1])/X_SIZE as f32 +
+                         (vy_grid[ix_down] - vy_grid[ix_up])/Y_SIZE as f32 +
+                         (vz_grid[ix_front] - vz_grid[ix_back])/Z_SIZE as f32);
                 prev_x[ix] = 0.0;
             }
         }
@@ -261,20 +257,20 @@ fn project(
         set_borders(prev_z, 3);
     }
 
-    //Gauss seidel between x and y velocity grids only
+    //Gauss seidel to compute gradient field x with y (ignoring z right now)
     linear_solver(prev_x, prev_y, 1.0, 6.0, false, 0);
 
-    for ii in 1..X_SIZE - 1 {
-        for jj in 1..Y_SIZE - 1 {
-            for kk in 1..Z_SIZE - 1 {
+    for ii in 1..=X_SIZE {
+        for jj in 1..=Y_SIZE  {
+            for kk in 1..=Z_SIZE  {
                 let ix = IX!(ii, jj, kk);
                 let ix_up = IX!(ii, jj - 1, kk); // 1 row up
                 let ix_down = IX!(ii, jj + 1, kk); // 1 row down
                 let ix_back = IX!(ii, jj, kk - 1); // 1 row back
                 let ix_front = IX!(ii, jj, kk + 1); // 1 row front
-                vx_grid[ix] -= 0.5 * (prev_x[ix + 1] - prev_x[ix - 1]) / Y_SIZE as f32;
-                vy_grid[ix] -= 0.5 * (prev_x[ix_down] - prev_x[ix_up]) / Y_SIZE as f32;
-                vz_grid[ix] -= 0.5 * (prev_x[ix_front] - prev_x[ix_back]) / Y_SIZE as f32;
+                vx_grid[ix] -= 0.5 * (prev_x[ix + 1] - prev_x[ix - 1]) * X_SIZE as f32;
+                vy_grid[ix] -= 0.5 * (prev_x[ix_down] - prev_x[ix_up]) * Y_SIZE as f32;
+                vz_grid[ix] -= 0.5 * (prev_x[ix_front] - prev_x[ix_back]) * Z_SIZE as f32;
             }
         }
     }
@@ -296,21 +292,18 @@ fn step_dens(
     borders: bool,
 ) {
     // Make a copy of the dens_grid
-    // let mut prev_dens_grid = dens_grid.to_vec();X_SIZE
-    // let prev_dens_grid = &mut prev_dens_grid[..];
     let prev_dens_grid = &mut dens_grid.clone();
 
-    // Swap binding in preparation for the next swap
+    // Swap
     let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
 
-    // Process diffusion
+    // Diffuse
     diffuse(dens_grid, prev_dens_grid, dt, diff, borders, 0);
 
-    // Swap bindings, b/c we just updates dens_grid and advect() needs to use
-    // that for the previous grid
+    // Swap
     let (prev_dens_grid, dens_grid) = (dens_grid, prev_dens_grid);
 
-    // Process velocity of particles
+    // Advect
     advect(
         dens_grid,
         prev_dens_grid,
