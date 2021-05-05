@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-pub const X_SIZE: usize = 126;
-pub const Y_SIZE: usize = 126;
+pub const X_SIZE: usize = 96;
+pub const Y_SIZE: usize = 96;
 pub const Z_SIZE: usize = 4;
 pub const SIZE_1D: usize = (X_SIZE+2)*(Y_SIZE+2)*(Z_SIZE+2);
 

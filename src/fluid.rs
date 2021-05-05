@@ -124,6 +124,29 @@ fn linear_solver(
     }
 
 }
+
+fn advect_positions(
+    pos: f32,
+    distance_moved: f32,
+    size: f32,
+)-> (f32, f32, f32, f32) {
+    //estimated position in previous step
+    let mut prev_pos = pos - distance_moved;
+    //estimated position past the edges?
+    if prev_pos < 0.5 {prev_pos=0.5}
+    if prev_pos > size + 0.5 {prev_pos = size + 0.5}
+
+    // position of neighbor cell before and ahead
+    let p0 = prev_pos.floor();
+    let p1 = prev_pos.ceil();
+
+    // how close to neighbor? 0 to 1
+    let w1 = prev_pos - p0;
+    let w0 = 1.0 - w1;
+
+    (p0, p1, w0, w1)
+}
+
 /// Align velocity with neighbors. diff is viscosity.
 fn diffuse(
     grid: &mut Box<[f32]>,
@@ -159,63 +182,28 @@ fn advect(
         for jj in 1..=Y_SIZE  {
             for kk in 1..=Z_SIZE  {
                 let ix = IX!(ii, jj, kk);
-                let mut x = ii as f32 - dt0x * vx_grid[ix];
-                let mut y = jj as f32 - dt0y * vy_grid[ix];
-                let mut z = kk as f32 - dt0z * vz_grid[ix];
 
-                //X
-                if x < 0.5 {
-                    x = 0.5
-                }
-                if x > X_SIZE as f32 - 1.5 {
-                    x = X_SIZE as f32 - 1.5
-                }
-                let ii0 = x as u32;
-                let ii1 = ii0 + 1;
+                // positions of neighbors and how close for each dimension
+                let (x0, x1, r0, r1) = advect_positions(ii as f32, dt0x * vx_grid[ix], X_SIZE as f32);
+                let (y0, y1, s0, s1) = advect_positions(jj as f32, dt0y * vy_grid[ix], Y_SIZE as f32);
+                let (z0, z1, t0, t1) = advect_positions(kk as f32, dt0z * vz_grid[ix], Z_SIZE as f32);
 
-                //Y
-                if y < 0.5 {
-                    y = 0.5
-                }
+                // all 8 neighbors for the 3 dimensions
+                let ix000 = IX!(x0, y0, z0);
+                let ix010 = IX!(x0, y1, z0);
+                let ix100 = IX!(x1, y0, z0);
+                let ix110 = IX!(x1, y1, z0);
+                let ix001 = IX!(x0, y0, z1);
+                let ix011 = IX!(x0, y1, z1);
+                let ix111 = IX!(x1, y1, z1);
+                let ix101 = IX!(x1, y0, z1);
 
-                if y > Y_SIZE as f32 - 1.5 {
-                    y = Y_SIZE as f32 - 1.5
-                }
-                let jj0 = y as u32;
-                let jj1 = jj0 + 1;
-
-                //Z
-                if z < 0.5 {
-                    z = 0.5
-                }
-
-                if z > Z_SIZE as f32 - 1.5 {
-                    z = Z_SIZE as f32 - 1.5
-                }
-                let kk0 = z as u32;
-                let kk1 = kk0 + 1;
-
-                let s1 = x - ii0 as f32;
-                let s0 = 1.0 - s1;
-                let t1 = y - jj0 as f32;
-                let t0 = 1.0 - t1;
-                let u1 = z - kk0 as f32;
-                let u0 = 1.0 - u1;
-
-                let ix000 = IX!(ii0, jj0, kk0);
-                let ix010 = IX!(ii0, jj1, kk0);
-                let ix110 = IX!(ii1, jj1, kk0);
-                let ix100 = IX!(ii1, jj0, kk0);
-                let ix001 = IX!(ii0, jj0, kk1);
-                let ix011 = IX!(ii0, jj1, kk1);
-                let ix111 = IX!(ii1, jj1, kk1);
-                let ix101 = IX!(ii1, jj0, kk1);
-
-                grid[ix] = s0
-                    * (t0 * (u0 * prev_grid[ix000] + u1 * prev_grid[ix001])
-                        + t1 * (u0 * prev_grid[ix010] + u1 * prev_grid[ix011]))
-                    + s1 * (t0 * (u0 * prev_grid[ix100] + u1 * prev_grid[ix101])
-                        + t1 * (u0 * prev_grid[ix110] + u1 * prev_grid[ix111]));
+                // current value is weighed average of the 8 neighbors
+                grid[ix] = r0
+                    * (s0 * (t0 * prev_grid[ix000] + t1 * prev_grid[ix001])
+                        + s1 * (t0 * prev_grid[ix010] + t1 * prev_grid[ix011]))
+                    + r1 * (s0 * (t0 * prev_grid[ix100] + t1 * prev_grid[ix101])
+                        + s1 * (t0 * prev_grid[ix110] + t1 * prev_grid[ix111]));
             }
         }
     }
@@ -260,6 +248,7 @@ fn project(
     //Gauss seidel to compute gradient field x with y (ignoring z right now)
     linear_solver(prev_x, prev_y, 1.0, 6.0, false, 0);
 
+    //Substract gradient field
     for ii in 1..=X_SIZE {
         for jj in 1..=Y_SIZE  {
             for kk in 1..=Z_SIZE  {

@@ -73,7 +73,6 @@ fn main() {
             pos: [1.0, -1.0, 1.0],
             uv: [1.0, 0.0, 1.0],
         },
-
         Vertex {
             pos: [-1.0, 1.0, -1.0],
             uv: [0.0, 1.0, 0.0],
@@ -86,106 +85,6 @@ fn main() {
             pos: [1.0, -1.0, 1.0],
             uv: [1.0, 0.0, 1.0],
         },
-
-        // Vertex {
-        //     pos: [1.0, -1.0, 1.0],
-        //     uv: [1.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, 1.0, 1.0],
-        //     uv: [1.0, 1.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, 1.0, -1.0],
-        //     uv: [1.0, 1.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, 1.0, -1.0],
-        //     uv: [1.0, 1.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, -1.0, -1.0],
-        //     uv: [1.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, -1.0, 1.0],
-        //     uv: [1.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, -1.0, 1.0],
-        //     uv: [1.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, -1.0],
-        //     uv: [0.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, -1.0, -1.0],
-        //     uv: [1.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, -1.0],
-        //     uv: [0.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, 1.0],
-        //     uv: [0.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, -1.0, 1.0],
-        //     uv: [1.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, -1.0],
-        //     uv: [0.0, 0.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, 1.0],
-        //     uv: [0.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, 1.0, -1.0],
-        //     uv: [0.0, 1.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, 1.0, -1.0],
-        //     uv: [0.0, 1.0, 0.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, 1.0, 1.0],
-        //     uv: [0.0, 1.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, 1.0],
-        //     uv: [0.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, -1.0, 1.0],
-        //     uv: [0.0, 0.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [-1.0, 1.0, 1.0],
-        //     uv: [0.0, 1.0, 1.0],
-        // },
-        // Vertex {
-        //     pos: [1.0, 1.0, 1.0],
-        //     uv: [1.0, 1.0, 1.0],
-        // },
-        //
-        // Vertex {
-        //     pos: [-1.0, -1.0, 1.0],
-        //     uv: [0.0, 0.0, 1.0],
-        // },
-        //
-        // Vertex {
-        //     pos: [1.0, -1.0, 1.0],
-        //     uv: [1.0, 0.0, 1.0],
-        // },
-        //
-        // Vertex {
-        //     pos: [1.0, 1.0, 1.0],
-        //     uv: [1.0, 1.0, 1.0],
-        // },
     ];
 
     let vbo = glium::VertexBuffer::new(&display, &vbo_data).unwrap();
@@ -204,7 +103,8 @@ fn main() {
 
     let mut fps_list = Vec::<u128>::new();
     // let mut t = Duration::default();
-
+    let mut mouse_x = 0.0;
+    let mut mouse_y = 0.0;
     loop {
         let new_now = Instant::now();
         let dt = new_now.duration_since(last_t);
@@ -218,33 +118,43 @@ fn main() {
         }
         last_t = new_now;
         // listing the events produced by the window and waiting to be received
-        let mut mouse_x = 0.0;
-        let mut mouse_y = 0.0;
+
         for ev in display.poll_events() {
             match ev {
                 glium::glutin::Event::Closed => return, // the window has been closed by the user
                 glium::glutin::Event::MouseMoved(x, y) => {
-                    mouse_x = (x as f32 / display_w as f32)*X_SIZE as f32;
-                    mouse_y = ((display_h as f32 - y as f32) / display_h as f32)*Y_SIZE as f32;
+                    mouse_x = (x as f32 / display_w as f32) * X_SIZE as f32;
+                    mouse_y = ((display_h as f32 - y as f32) / display_h as f32) * Y_SIZE as f32;
 
                     wind_grid.add_velocity_source(
-                        Pos { x: mouse_x as usize, y: mouse_y as usize, z: 2 },
+                        Pos {
+                            x: mouse_x as usize,
+                            y: mouse_y as usize,
+                            z: 2,
+                        },
                         Vel {
-                            x: 20.0,
-                            y: 20.0,
+                            x: 200.0,
+                            y: 200.0,
                             z: 20.0,
                         },
                     );
                 }
-                glium::glutin::Event::MouseInput(Pressed, Left) => {
-                    wind_grid.add_density_source(Pos { x: mouse_x as usize, y: mouse_y as usize, z: 2 }, 330.0)
-                }
+                glium::glutin::Event::MouseInput(
+                    glium::glutin::ElementState::Pressed,
+                    glium::glutin::MouseButton::Left,
+                ) => wind_grid.add_density_source(
+                    Pos {
+                        x: mouse_x as usize,
+                        y: mouse_y as usize,
+                        z: 2,
+                    },
+                    330.0,
+                ),
                 _ => (),
             }
         }
 
         //Adding point velocity sources to the grid
-
 
         // Process fluids
         fluid::step_fluid(
