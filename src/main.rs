@@ -125,20 +125,23 @@ fn main() {
                 glium::glutin::Event::MouseMoved(x, y) => {
                     mouse_x = (x as f32 / display_w as f32) * X_SIZE as f32;
                     mouse_y = ((display_h as f32 - y as f32) / display_h as f32) * Y_SIZE as f32;
-
-                    wind_grid.add_velocity_source(
-                        Pos {
-                            x: mouse_x as usize,
-                            y: mouse_y as usize,
-                            z: 2,
-                        },
-                        Vel {
-                            x: 200.0,
-                            y: 200.0,
-                            z: 20.0,
-                        },
-                    );
                 }
+                glium::glutin::Event::MouseInput(
+                    glium::glutin::ElementState::Pressed,
+                    glium::glutin::MouseButton::Right,
+                ) => wind_grid.add_velocity_source(
+                    Pos {
+                        x: mouse_x as usize,
+                        y: mouse_y as usize,
+                        z: 2,
+                    },
+                    Vel {
+                        x: 200.0,
+                        y: 200.0,
+                        z: 20.0,
+                    },
+                ),
+
                 glium::glutin::Event::MouseInput(
                     glium::glutin::ElementState::Pressed,
                     glium::glutin::MouseButton::Left,

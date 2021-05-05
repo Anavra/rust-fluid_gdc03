@@ -4,14 +4,17 @@ macro_rules! IX {
     ( $x: expr, $y: expr,  $z: expr ) => {{ $x as usize + (X_SIZE + 2) * ($y as usize + (Y_SIZE + 2) * $z as usize) }};
 }
 
-///
-/// * `b` - The type of border. 1 for vertical vel walls, 2 for hori vel walls,
-///   0 for dens.
+/// * `b` - The type of border. 1 for vertical vel walls, 2 for side vel walls,
+///   3 for back-front walls, 0 for dens.
 fn set_borders(grid: &mut Box<[f32]>, b: u8) {
-    for ii in 0..X_SIZE {
-        for kk in 0..Z_SIZE {
-            let ix_top = IX!(ii, Y_SIZE - 1, kk);
-            let ix_top_inset = IX!(ii, Y_SIZE - 2, kk);
+    let max_x = X_SIZE+1;
+    let max_y = Y_SIZE+1;
+    let max_z = Z_SIZE+1;
+
+    for ii in 0..max_x {
+        for kk in 0..max_z {
+            let ix_top = IX!(ii, max_y, kk);
+            let ix_top_inset = IX!(ii, max_y-1, kk);
             let ix_bot = IX!(ii, 0, kk);
             let ix_bot_inset = IX!(ii, 1, kk);
             grid[ix_top] = {
@@ -31,12 +34,12 @@ fn set_borders(grid: &mut Box<[f32]>, b: u8) {
         }
     }
     // SIDE WALLS
-    for jj in 0..Y_SIZE {
-        for kk in 0..Z_SIZE {
+    for jj in 0..max_y {
+        for kk in 0..max_z {
             let ix_left = IX!(0, jj, kk);
             let ix_left_inset = IX!(1, jj, kk);
-            let ix_right = IX!(X_SIZE - 1, jj, kk);
-            let ix_right_inset = IX!(X_SIZE - 2, jj, kk);
+            let ix_right = IX!(max_x, jj, kk);
+            let ix_right_inset = IX!(max_x-1, jj, kk);
             grid[ix_left] = {
                 if b == 1 {
                     -grid[ix_left_inset]
@@ -54,12 +57,12 @@ fn set_borders(grid: &mut Box<[f32]>, b: u8) {
         }
     }
     // BACK - FRONT WALLS
-    for ii in 0..X_SIZE {
-        for jj in 0..Y_SIZE {
+    for ii in 0..max_x {
+        for jj in 0..max_y {
             let ix_front = IX!(ii, jj, 0);
             let ix_front_inset = IX!(ii, jj, 1);
-            let ix_back = IX!(ii, jj, Z_SIZE - 1);
-            let ix_back_inset = IX!(ii, jj, Z_SIZE - 2);
+            let ix_back = IX!(ii, jj, max_z);
+            let ix_back_inset = IX!(ii, jj, max_z-1);
             grid[ix_front] = {
                 if b == 3 {
                     -grid[ix_front_inset]
@@ -76,15 +79,17 @@ fn set_borders(grid: &mut Box<[f32]>, b: u8) {
             };
         }
     }
-    // TO DO: Fix code below
-    grid[IX!(0, 0, Z_SIZE - 1)] = 0.5 * (grid[IX!(1, 0, Z_SIZE - 1)] + grid[IX!(0, 1, Z_SIZE - 1)]);
-    grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)] =
-        0.5 * (grid[IX!(1, Y_SIZE - 2, Z_SIZE - 1)] + grid[IX!(0, Y_SIZE - 2, Z_SIZE - 1)]);
-    grid[IX!(X_SIZE - 2, 0, Z_SIZE - 1)] =
-        0.5 * (grid[IX!(X_SIZE - 2, 0, Z_SIZE - 1)] + grid[IX!(X_SIZE - 2, 1, Z_SIZE - 1)]);
-    grid[IX!(X_SIZE - 2, Y_SIZE - 2, Z_SIZE - 1)] = 0.5
-        * (grid[IX!(X_SIZE - 3, Y_SIZE - 2, Z_SIZE - 1)]
-            + grid[IX!(X_SIZE - 2, Y_SIZE - 3, Z_SIZE - 1)]);
+
+    // For the 12 edges of the 3d grid
+    for ii in 1..max_x-1 {
+        grid[IX!(ii, 0, 0)]= (grid[IX!(ii+1, 0, 0)]+grid[IX!(ii-1, 0, 0)]+grid[IX!(ii, 1, 0)]+grid[IX!(ii, 0, 1)])/4.0;
+        grid[IX!(ii, max_y, 0)]= (grid[IX!(ii+1, max_y, 0)]+grid[IX!(ii-1, max_y, 0)]+grid[IX!(ii, max_y-1, 0)]+grid[IX!(ii, max_y, 1)])/4.0;
+        grid[IX!(ii, 0, max_z)]= (grid[IX!(ii+1, 0, max_z)]+grid[IX!(ii-1, 0, max_z)]+grid[IX!(ii, 0, max_z-1)]+grid[IX!(ii, 1, max_z)])/4.0;
+        grid[IX!(ii, max_y, max_z)]=(grid[IX!(ii+1, max_y, max_z)]+grid[IX!(ii-1, max_y, max_z)]+grid[IX!(ii, max_y-1, max_z)]+grid[IX!(ii, max_y, max_z-1)])/4.0;
+    }
+    // The 8 vertices of the 3d grid
+    //grid[IX!(0, 0, 0)] = (grid[IX!(1, 0, Z_SIZE - 1)] + grid[IX!(0, 1, Z_SIZE - 1)]);
+
 }
 
 fn linear_solver(
