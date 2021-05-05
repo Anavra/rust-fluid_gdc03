@@ -162,7 +162,7 @@ fn main() {
             &mut wind_grid.x_vel,
             &mut wind_grid.y_vel,
             &mut wind_grid.z_vel,
-            0.001,
+            0.01,
             0.1,
             true,
         );

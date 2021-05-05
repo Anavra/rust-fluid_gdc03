@@ -125,29 +125,31 @@ fn linear_solver(
 
 }
 
-fn advect_positions(
+fn trace_backwards(
     pos: f32,
     distance_moved: f32,
     size: f32,
 )-> (f32, f32, f32, f32) {
-    //estimated position in previous step
+    //estimated position in previous step (not on a cell center - cell centers are integers)
     let mut prev_pos = pos - distance_moved;
-    //estimated position past the edges?
+
+    // is the estimated position past the edges? keep inside
     if prev_pos < 0.5 {prev_pos=0.5}
     if prev_pos > size + 0.5 {prev_pos = size + 0.5}
 
-    // position of neighbor cell before and ahead
+    // find cell centers to left and right (or up and down, etc)
     let p0 = prev_pos.floor();
     let p1 = prev_pos.ceil();
 
-    // how close to neighbor? 0 to 1
-    let w1 = prev_pos - p0;
-    let w0 = 1.0 - w1;
+    // how close to cell centers? 0 to 1
+    let d1 = prev_pos - p0;
+    let d0 = 1.0 - d1;
 
-    (p0, p1, w0, w1)
+    // return adjacent cell centers and distances to centers
+    (p0, p1, d0, d1)
 }
 
-/// Align velocity with neighbors. diff is viscosity.
+/// Align velocity with neighbors. Depends on viscosity.
 fn diffuse(
     grid: &mut Box<[f32]>,
     prev_grid: &mut Box<[f32]>,
@@ -181,14 +183,15 @@ fn advect(
     for ii in 1..=X_SIZE {
         for jj in 1..=Y_SIZE  {
             for kk in 1..=Z_SIZE  {
+                // current cell center
                 let ix = IX!(ii, jj, kk);
 
-                // positions of neighbors and how close for each dimension
-                let (x0, x1, r0, r1) = advect_positions(ii as f32, dt0x * vx_grid[ix], X_SIZE as f32);
-                let (y0, y1, s0, s1) = advect_positions(jj as f32, dt0y * vy_grid[ix], Y_SIZE as f32);
-                let (z0, z1, t0, t1) = advect_positions(kk as f32, dt0z * vz_grid[ix], Z_SIZE as f32);
+                // positions of and distance to adjacent cell centers to previous position of current cell center
+                let (x0, x1, r0, r1) = trace_backwards(ii as f32, dt0x * vx_grid[ix], X_SIZE as f32);
+                let (y0, y1, s0, s1) = trace_backwards(jj as f32, dt0y * vy_grid[ix], Y_SIZE as f32);
+                let (z0, z1, t0, t1) = trace_backwards(kk as f32, dt0z * vz_grid[ix], Z_SIZE as f32);
 
-                // all 8 neighbors for the 3 dimensions
+                // all adjacent cell centers surrounding previous position (like vertices of a cube)
                 let ix000 = IX!(x0, y0, z0);
                 let ix010 = IX!(x0, y1, z0);
                 let ix100 = IX!(x1, y0, z0);
@@ -198,7 +201,7 @@ fn advect(
                 let ix111 = IX!(x1, y1, z1);
                 let ix101 = IX!(x1, y0, z1);
 
-                // current value is weighed average of the 8 neighbors
+                // value of cell is weighed average of the values of the 8 cell centers
                 grid[ix] = r0
                     * (s0 * (t0 * prev_grid[ix000] + t1 * prev_grid[ix001])
                         + s1 * (t0 * prev_grid[ix010] + t1 * prev_grid[ix011]))
