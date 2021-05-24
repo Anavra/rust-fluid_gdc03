@@ -1,9 +1,13 @@
 #[macro_use]
 extern crate glium;
+extern crate inline_tweak;
+extern crate rand;
 
 mod fluid;
 mod types;
-use glium::backend::glutin_backend::GlutinFacade;
+use glium::{backend::glutin_backend::GlutinFacade};
+use inline_tweak::tweak;
+use rand::Rng;
 use std::time::Instant;
 use types::*;
 
@@ -129,17 +133,13 @@ fn main() {
                 glium::glutin::Event::MouseInput(
                     glium::glutin::ElementState::Pressed,
                     glium::glutin::MouseButton::Right,
-                ) => wind_grid.add_velocity_source(
+                ) => wind_grid.add_density_source(
                     Pos {
                         x: mouse_x as usize,
                         y: mouse_y as usize,
                         z: 2,
                     },
-                    Vel {
-                        x: 200.0,
-                        y: 200.0,
-                        z: 20.0,
-                    },
+                    -30.0,
                 ),
 
                 glium::glutin::Event::MouseInput(
@@ -151,13 +151,30 @@ fn main() {
                         y: mouse_y as usize,
                         z: 2,
                     },
-                    330.0,
+                    30.0,
                 ),
                 _ => (),
             }
         }
 
         //Adding point velocity sources to the grid
+        let mut rng = rand::thread_rng();
+        let r1 = rng.gen_range(0.0..std::f32::consts::PI / 2.0);
+        let r2 = rng.gen_range(0.0..std::f32::consts::PI / 2.0);
+        let r = (r1 + r2) / 2.0;
+
+        let x = rng.gen_range(1.0..X_SIZE as f32);
+
+        for i in 1..x as usize {
+            wind_grid.add_velocity_source(
+                Pos { x: tweak!(i), y: tweak!(50), z: tweak!(4) },
+                Vel {
+                    x: tweak!(312.0) * r.sin(),
+                    y: tweak!(39.0) * r.cos(),
+                    z: tweak!(300.0) * rng.gen_range(-0.25..0.25),
+                },
+            )
+        }
 
         // Process fluids
         fluid::step_fluid(

@@ -5,3 +5,5 @@ authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 
 [dependencies]
 glium = "0.16.0"
+rand = { version = "0.8", features = ["small_rng"] }
+inline_tweak = "1.0.8"
